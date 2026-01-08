@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Data Reference View</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .highlight {
+            background-color: #fef08a; /* yellow-200 */
+            font-weight: bold;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Header -->
+    <div class="mb-8">
+        <h3 class="text-2xl font-bold text-gray-900">Master Data Reference</h3>
+        <p class="text-gray-500 mt-1">Search and view reference codes for data upload templates.</p>
+    </div>
+
+    <!-- VIEW 1: DASHBOARD GRID -->
+    <div id="dashboardView">
+        <!-- Search Bar -->
+        <div class="relative mb-8 group">
+            <div class="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors pointer-events-none">
+                <!-- Heroicon: Magnifying Glass -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+            </div>
+            <input type="text" 
+                   class="w-full h-14 pl-14 pr-4 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all duration-300" 
+                   id="masterSearch" 
+                   placeholder="Search Master Data (e.g., User Type, Department, Cost Center...)" 
+                   autocomplete="off">
+        </div>
+
+        <!-- Category Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="categoryGrid">
+            <!-- Items will be injected here by JS -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="noResults" class="hidden text-center py-20">
+            <div class="text-gray-300 flex justify-center mb-4">
+                <!-- Heroicon: Folder Minus -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-20 h-20">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 13.5H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+                </svg>
+            </div>
+            <p class="text-gray-500 text-lg">Master data not found.</p>
+        </div>
+    </div>
+
+    <!-- VIEW 2: DETAIL TABLE -->
+    <div id="detailView" class="hidden bg-white rounded-xl shadow-sm p-8 fade-in">
+        <button onclick="showDashboard()" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium mb-6 transition-colors group">
+            <!-- Heroicon: Arrow Left -->
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 group-hover:-translate-x-1 transition-transform">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            Back to Master Data List
+        </button>
+
+        <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b border-gray-100 pb-4 gap-4">
+            <div>
+                <h4 class="text-xl font-bold text-gray-900 mb-1" id="detailTitle">Title Here</h4>
+                <p class="text-sm text-gray-500" id="detailDesc">Description here</p>
+            </div>
+            <div>
+                <!-- Optional: Search within the specific table -->
+                <input type="text" 
+                       class="w-full md:w-64 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                       id="tableSearch" 
+                       placeholder="Filter table...">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
+                    <tr id="tableHeader">
+                        <!-- Headers injected by JS -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody" class="divide-y divide-gray-100 text-sm text-gray-700">
+                    <!-- Rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Mock Data & Scripts -->
+<script>
+    // 1. Data Definition with Heroicons SVG strings
+    const masterDataCategories = [
+        {
+            id: 'user_req_type',
+            title: 'User Request Type',
+            desc: 'Types of requests for access or user data changes.',
+            // Heroicon: Clipboard Document Check
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>`,
+            columns: ['Code', 'Request Name', 'Description'],
+            data: [
+                ['UR-01', 'New User', 'Request for new user creation'],
+                ['UR-02', 'Change Access', 'Changes in permissions or roles'],
+                ['UR-03', 'Deactivation', 'User deactivation (Resign/Termination)'],
+                ['UR-04', 'Reactivation', 'Reactivating an existing user']
+            ]
+        },
+        {
+            id: 'sap_pur_group',
+            title: 'SAP Purchasing Group',
+            desc: 'Buyer groups responsible for material procurement.',
+            // Heroicon: Briefcase
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" /></svg>`,
+            columns: ['P.Group Code', 'Name', 'Organization'],
+            data: [
+                ['P01', 'Local Procurement', 'Corporate HQ'],
+                ['P02', 'Import Division', 'Regional Office'],
+                ['P03', 'Service & Maintenance', 'Plant Area'],
+                ['P04', 'IT Assets', 'Corporate IT']
+            ]
+        },
+        {
+            id: 'sap_articles',
+            title: 'SAP Articles',
+            desc: 'Material or product master data records.',
+            // Heroicon: Cube
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>`,
+            columns: ['Article Code', 'Description', 'Base UoM'],
+            data: [
+                ['ART-100', 'Laptop Dell XPS 15', 'PC'],
+                ['ART-200', 'Office Chair Ergonomic', 'PC'],
+                ['ART-300', 'A4 Paper 80gsm', 'RM'],
+                ['ART-400', 'Mechanical Keyboard', 'PC']
+            ]
+        },
+        {
+            id: 'sap_sites',
+            title: 'SAP Sites / Plants',
+            desc: 'List of physical locations or plants in SAP.',
+            // Heroicon: Building Office 2
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5h.75m-.75 3h.75m-.75 3h.75" /></svg>`,
+            columns: ['Site ID', 'Site Name', 'City'],
+            data: [
+                ['S100', 'Jakarta Central Plant', 'Jakarta'],
+                ['S200', 'Surabaya Logistics', 'Surabaya'],
+                ['S300', 'Medan Distribution', 'Medan'],
+                ['S400', 'Bandung Hub', 'Bandung']
+            ]
+        },
+        {
+            id: 'sap_sloc',
+            title: 'SAP Storage Location',
+            desc: 'Specific storage locations within a Site.',
+            // Heroicon: Archive Box
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3.25h3m-3-3.75h3m-12-3h15.75c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125H3.75a1.125 1.125 0 0 1-1.125-1.125V4.875C2.625 4.254 3.129 3.75 3.75 3.75Z" /></svg>`,
+            columns: ['SLoc Code', 'Description', 'Site Reference'],
+            data: [
+                ['SL01', 'Main Warehouse', 'S100'],
+                ['SL02', 'Buffer Stock Area', 'S100'],
+                ['SL03', 'Damage Goods', 'S200'],
+                ['SL04', 'Quality Inspection', 'S300']
+            ]
+        },
+        {
+            id: 'sap_cost_center',
+            title: 'SAP Cost Center',
+            desc: 'Organizational units where costs are incurred.',
+            // Heroicon: Banknotes
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>`,
+            columns: ['CC Code', 'Name', 'Department'],
+            data: [
+                ['1010', 'Finance & Tax', 'Finance'],
+                ['2020', 'Software Engineering', 'IT'],
+                ['3030', 'Talent Management', 'HR'],
+                ['4040', 'Digital Marketing', 'Marketing']
+            ]
+        },
+        {
+            id: 'sap_int_order',
+            title: 'SAP Internal Order',
+            desc: 'Cost monitoring codes for internal activities.',
+            // Heroicon: Document Text
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>`,
+            columns: ['Order ID', 'Order Description', 'Status'],
+            data: [
+                ['IO-2024-001', 'Annual Marketing Event', 'Active'],
+                ['IO-2024-002', 'IT Infrastructure Upgrade', 'Active'],
+                ['IO-2023-010', 'Office Renovation', 'Closed']
+            ]
+        },
+        {
+            id: 'sap_profit_center',
+            title: 'SAP Profit Center',
+            desc: 'Management-oriented organizational unit for internal control.',
+            // Heroicon: Presentation Chart Line
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0V3m0 13.5v3m0 0h7.5m-7.5 0h-3m3 0h3m0 0V16.5m0 3v3" /></svg>`,
+            columns: ['Profit Center', 'Name', 'Controlling Area'],
+            data: [
+                ['PC-100', 'Manufacturing Division', '1000'],
+                ['PC-200', 'Service Division', '1000'],
+                ['PC-300', 'Sales Division', '2000']
+            ]
+        },
+        {
+            id: 'user_req_area',
+            title: 'User Request Area',
+            desc: 'Operational areas where user requests are generated.',
+            // Heroicon: Map
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>`,
+            columns: ['Area Code', 'Area Name', 'Location'],
+            data: [
+                ['AREA-01', 'Production Floor A', 'Plant Jakarta'],
+                ['AREA-02', 'Warehouse B', 'Plant Surabaya'],
+                ['AREA-03', 'Admin Office', 'HQ Jakarta']
+            ]
+        },
+        {
+            id: 'user_req_cat',
+            title: 'User Request Category',
+            desc: 'Functional classification of requests.',
+            // Heroicon: Swatch
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" /></svg>`,
+            columns: ['Category Code', 'Category Name', 'Priority'],
+            data: [
+                ['CAT-01', 'Hardware Access', 'High'],
+                ['CAT-02', 'Software License', 'Medium'],
+                ['CAT-03', 'Network Permission', 'High'],
+                ['CAT-04', 'ERP Account', 'Medium']
+            ]
+        },
+        {
+            id: 'sap_acc_assign',
+            title: 'SAP Account Assignment',
+            desc: 'Cost allocation categories for purchasing documents.',
+            // Heroicon: Calculator
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5a2.25 2.25 0 0 1 2.25 2.25v1.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-1.5A2.25 2.25 0 0 1 8.25 6Z" /></svg>`,
+            columns: ['Category', 'Description', 'Required Field'],
+            data: [
+                ['K', 'Cost Center', 'Cost Center ID'],
+                ['P', 'Project / WBS', 'WBS Element'],
+                ['F', 'Order', 'Internal Order ID'],
+                ['A', 'Asset', 'Asset Number']
+            ]
+        },
+        {
+            id: 'sap_uom',
+            title: 'SAP Unit of Measure',
+            desc: 'Standard units used for quantity measurements.',
+            // Heroicon: Scale
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.905c-.495-.507-1.225-.67-1.935-.45a4.478 4.478 0 0 0-3.187 3.187c-.22.71-.057 1.44.45 1.935m0 0c.495.507 1.225.67 1.935.45a4.478 4.478 0 0 0 3.187-3.187c.22-.71.057-1.44-.45-1.935ZM9.684 5.223c.23-.308.346-.71.308-1.112a2.152 2.152 0 0 0-2.146-2.146 2.152 2.152 0 0 0-2.146 2.146c-.038.402.077.804.308 1.112m0 0c.23.308.346.71.308 1.112a2.152 2.152 0 0 0 2.146 2.146 2.152 2.152 0 0 0 2.146-2.146c.038-.402-.077-.804-.308-1.112Z" /></svg>`,
+            columns: ['UoM Code', 'Description', 'Dimension'],
+            data: [
+                ['PC', 'Piece', 'Count'],
+                ['KG', 'Kilogram', 'Mass'],
+                ['M', 'Meter', 'Length'],
+                ['L', 'Liter', 'Volume']
+            ]
+        },
+        {
+            id: 'sap_merch_cat',
+            title: 'SAP Merchandise Category',
+            desc: 'Grouping of goods or material types.',
+            // Heroicon: Tag
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a22.5 22.5 0 0 0 6-5.963c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
+            columns: ['MC Code', 'Category Name', 'Division'],
+            data: [
+                ['MC001', 'Electronics & Gadgets', 'General Merch'],
+                ['MC002', 'Office Stationery', 'Consumables'],
+                ['MC003', 'Furniture & Interior', 'Fix Asset'],
+                ['MC004', 'Raw Materials', 'Production']
+            ]
+        }
+    ];
+
+    // 2. Element References
+    const dashboardView = document.getElementById('dashboardView');
+    const detailView = document.getElementById('detailView');
+    const gridContainer = document.getElementById('categoryGrid');
+    const searchInput = document.getElementById('masterSearch');
+    const noResults = document.getElementById('noResults');
+
+    // 3. Render Dashboard Grid
+    function renderGrid(filterText = '') {
+        gridContainer.innerHTML = '';
+        let hasData = false;
+        
+        const lowerFilter = filterText.toLowerCase();
+
+        masterDataCategories.forEach(cat => {
+            // Simple filter logic
+            if (cat.title.toLowerCase().includes(lowerFilter) || cat.desc.toLowerCase().includes(lowerFilter)) {
+                hasData = true;
+                const div = document.createElement('div');
+                // Minimalist Card Design (No Icon)
+                div.innerHTML = `
+                    <div class="h-full bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-400 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-center group relative overflow-hidden" onclick="showDetail('${cat.id}')">
+                        <!-- Hover Accent: Left Blue Border -->
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        <h5 class="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">${highlightText(cat.title, lowerFilter)}</h5>
+                        <p class="text-sm text-gray-500 leading-relaxed">${highlightText(cat.desc, lowerFilter)}</p>
+                        
+                        <!-- Optional: Small arrow to indicate action -->
+                        <div class="mt-4 flex items-center text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                            View Data <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                        </div>
+                    </div>
+                `;
+                gridContainer.appendChild(div);
+            }
+        });
+
+        if (!hasData) {
+            noResults.classList.remove('hidden');
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+
+    // Helper: Highlight Text
+    function highlightText(text, search) {
+        if (!search) return text;
+        const regex = new RegExp(`(${search})`, 'gi');
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    // 4. Show Detail Logic
+    window.showDetail = function(id) {
+        const data = masterDataCategories.find(c => c.id === id);
+        if (!data) return;
+
+        // Populate Detail View
+        document.getElementById('detailTitle').textContent = data.title;
+        document.getElementById('detailDesc').textContent = data.desc;
+
+        // Render Header
+        const thead = document.getElementById('tableHeader');
+        thead.innerHTML = `
+            <th scope="col" class="px-6 py-3 rounded-l-lg w-16">#</th>
+            ${data.columns.map(col => `<th scope="col" class="px-6 py-3">${col}</th>`).join('')}
+            <th scope="col" class="px-6 py-3 rounded-r-lg w-32">Action</th>
+        `;
+
+        // Render Body
+        renderTableBody(data.data);
+
+        // Switch Views
+        dashboardView.classList.add('hidden');
+        detailView.classList.remove('hidden');
+        
+        // Reset table search
+        document.getElementById('tableSearch').value = '';
+        document.getElementById('tableSearch').onkeyup = (e) => {
+            const val = e.target.value.toLowerCase();
+            const filteredData = data.data.filter(row => row.some(cell => cell.toString().toLowerCase().includes(val)));
+            renderTableBody(filteredData);
+        };
+    };
+
+    function renderTableBody(rows) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        if(rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-gray-500 py-8">No data available in this table.</td></tr>';
+            return;
+        }
+
+        rows.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-blue-50 transition-colors";
+            
+            // Index column
+            let html = `<td class="px-6 py-4 text-gray-400 font-mono text-xs">${index + 1}</td>`;
+            
+            // Data columns
+            row.forEach(cell => {
+                html += `<td class="px-6 py-4">${cell}</td>`;
+            });
+            
+            // Action column (Copy)
+            const codeToCopy = row[0];
+            // Heroicon: Clipboard
+            const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" /></svg>`;
+            
+            html += `
+                <td class="px-6 py-4">
+                    <button class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors copy-btn flex items-center gap-2" onclick="copyToClipboard('${codeToCopy}', this)">
+                        ${copyIcon} Copy
+                    </button>
+                </td>
+            `;
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 5. Back to Dashboard
+    window.showDashboard = function() {
+        detailView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
+    };
+
+    // 6. Copy Functionality
+    window.copyToClipboard = function(text, btnElement) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHTML = btnElement.innerHTML;
+            const originalClasses = btnElement.className;
+            
+            // Heroicon: Check
+            const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>`;
+            
+            btnElement.innerHTML = `${checkIcon} Copied`;
+            btnElement.className = "px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-md flex items-center gap-2 cursor-default";
+            
+            setTimeout(() => {
+                btnElement.innerHTML = originalHTML;
+                btnElement.className = originalClasses;
+            }, 1500);
+        });
+    };
+
+    // Initialize
+    searchInput.addEventListener('input', (e) => renderGrid(e.target.value));
+    renderGrid();
+
+</script>
+
+</body>
+</html>
